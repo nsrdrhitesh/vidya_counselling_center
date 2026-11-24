@@ -18,6 +18,42 @@ final class ManagedRelease
         return is_array($data) ? $data : [];
     }
 
+    /** Fetch an immutable, checksum-pinned build directly into private storage. */
+    private static function download(string $managed, array $candidate, string $schema): bool
+    {
+        $commit = (string)($candidate['artifact_commit'] ?? '');
+        $sha = (string)($candidate['release'] ?? '');
+        $hash = (string)($candidate['archive_sha256'] ?? '');
+        if (!preg_match('/^[a-f0-9]{40}$/', $commit) || !preg_match('/^[a-f0-9]{40}$/', $sha) || !preg_match('/^[a-f0-9]{64}$/', $hash)
+            || !function_exists('curl_init') || !class_exists(\ZipArchive::class)) return false;
+        if (!is_dir($managed.'/releases')) mkdir($managed.'/releases', 0700, true);
+        $temporary = $managed.'/incoming-'.bin2hex(random_bytes(8));
+        mkdir($temporary, 0700);
+        $archive = $temporary.'/package.zip';
+        $stream = fopen($archive, 'wb');
+        $curl = curl_init('https://raw.githubusercontent.com/nsrdrhitesh/vidya_counselling_center/'.$commit.'/deployment.zip');
+        curl_setopt_array($curl, [CURLOPT_FILE=>$stream, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_TIMEOUT=>45, CURLOPT_FOLLOWLOCATION=>false, CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS, CURLOPT_SSL_VERIFYPEER=>true, CURLOPT_SSL_VERIFYHOST=>2]);
+        $ok = curl_exec($curl);
+        $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        curl_close($curl); fclose($stream); chmod($archive, 0600);
+        if (!$ok || $status !== 200 || filesize($archive) > 33554432 || !hash_equals($hash, (string)hash_file('sha256', $archive))) return false;
+        $zip = new \ZipArchive();
+        if ($zip->open($archive) !== true || $zip->numFiles > 15000) return false;
+        for ($i=0; $i<$zip->numFiles; $i++) {
+            $name = (string)$zip->getNameIndex($i);
+            if (!self::relative($name) || preg_match('~(^|/)\.env(?:$|[./])~', $name)) { $zip->close(); return false; }
+            $zip->getExternalAttributesIndex($i, $opsys, $attributes);
+            if ((($attributes >> 16) & 0170000) === 0120000) { $zip->close(); return false; }
+        }
+        $target = $temporary.'/release'; mkdir($target, 0700);
+        $ok = $zip->extractTo($target); $zip->close(); unlink($archive);
+        if (!$ok || !self::verify($target, $candidate, $schema)) return false;
+        foreach (['bootstrap/cache','storage/app/private','storage/framework/cache/data','storage/framework/sessions','storage/framework/views','storage/logs'] as $folder) if (!is_dir($target.'/'.$folder)) mkdir($target.'/'.$folder, 0700, true);
+        // The destination never replaces an active release directory.
+        if (is_dir($managed.'/releases/'.$sha)) return true;
+        return rename($target, $managed.'/releases/'.$sha);
+    }
+
     public static function verify(string $root, array $candidate, string $schema): bool
     {
         $manifest = $root.'/deployment-manifest.json';
@@ -51,7 +87,8 @@ final class ManagedRelease
         @chmod($private.'/managed-activation.lock', 0600);
         try {
             if (!flock($lock, LOCK_EX)) return $selected;
-            $candidate = self::json($managed.'/current.json');
+            $pointer = ($settings['pointer_from_web'] ?? false) === true ? dirname($private).'/public_html/_deployment/current.json' : $managed.'/current.json';
+            $candidate = self::json($pointer);
             if (($candidate['disabled'] ?? false) === true) return $selected;
             $active = self::json($private.'/managed-active.json');
             $activeSha = (string)($active['release'] ?? '');
@@ -63,6 +100,7 @@ final class ManagedRelease
             if (!preg_match('/^[a-f0-9]{40}$/', $sha) || !preg_match('/^[a-f0-9]{64}$/', (string)($settings['schema_fingerprint'] ?? ''))) return $selected;
             if ($sha === $activeSha && ($active['manifest_sha256'] ?? '') === ($candidate['manifest_sha256'] ?? '')) return $selected;
             $root = $managed.'/releases/'.$sha;
+            if (!is_dir($root) && ($settings['pointer_from_web'] ?? false) === true) self::download($managed, $candidate, $settings['schema_fingerprint']);
             // Incomplete Git checkouts never become active; the previous release keeps serving.
             if (!self::verify($root, $candidate, $settings['schema_fingerprint'])) return $selected;
             $temporary = $private.'/managed-active-'.bin2hex(random_bytes(8)).'.tmp';

@@ -44,18 +44,21 @@ if manifest['commit'] != sha:
 for path in [private_zip, public_zip]:
     if hashlib.sha256(path.read_bytes()).hexdigest() != manifest['files'][path.name]:
         raise SystemExit('Artifact checksum mismatch.')
-with tempfile.TemporaryDirectory() as temporary:
-    work = Path(temporary) / 'deployment'
+def checkout_branch(branch, work):
     remote = git('remote', 'get-url', 'origin')
-    exists = bool(git('ls-remote', '--heads', 'origin', 'hostinger-deploy'))
-    if exists:
-        git('clone', '--single-branch', '--branch', 'hostinger-deploy', remote, str(work))
+    if git('ls-remote', '--heads', 'origin', branch):
+        git('clone', '--single-branch', '--branch', branch, remote, str(work))
     else:
         work.mkdir()
-        git('init', '--initial-branch=hostinger-deploy', cwd=work)
+        git('init', '--initial-branch=' + branch, cwd=work)
         git('remote', 'add', 'origin', remote, cwd=work)
-    release = work / 'releases' / sha
-    release.mkdir(parents=True, exist_ok=True)
+    git('config', 'user.name', 'github-actions[bot]', cwd=work)
+    git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com', cwd=work)
+
+with tempfile.TemporaryDirectory() as temporary:
+    temp = Path(temporary)
+    release = temp / 'release'
+    release.mkdir()
     for archive, target in [(private_zip, release), (public_zip, release / 'public')]:
         with zipfile.ZipFile(archive) as z:
             for item in z.infolist():
@@ -65,19 +68,30 @@ with tempfile.TemporaryDirectory() as temporary:
             z.extractall(target)
     files = {p.relative_to(release).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(release.rglob('*')) if p.is_file()}
-    content = {'commit': sha, 'schema_fingerprint': schema, 'files': files}
     deployment_manifest = release / 'deployment-manifest.json'
-    deployment_manifest.write_text(json.dumps(content, sort_keys=True, indent=2))
-    previous = json.loads((work / 'current.json').read_text()).get('release') if (work / 'current.json').exists() else None
-    retain = {sha, previous}
-    for old in (work / 'releases').iterdir():
-        if old.is_dir() and old.name not in retain:
-            shutil.rmtree(old)
-    (work / 'current.json').write_text(json.dumps({'release': sha, 'manifest_sha256': hashlib.sha256(deployment_manifest.read_bytes()).hexdigest()}, indent=2))
-    (work / 'README.md').write_text('Generated tested deployment artifact. Host outside public_html. No secrets or production database. Edit source on main only.\n')
-    git('config', 'user.name', 'github-actions[bot]', cwd=work)
-    git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com', cwd=work)
-    git('add', '-f', 'releases', 'current.json', 'README.md', cwd=work)
+    deployment_manifest.write_text(json.dumps({'commit': sha, 'schema_fingerprint': schema, 'files': files}, sort_keys=True, indent=2))
+    artifacts = temp / 'artifacts'
+    checkout_branch('hostinger-artifacts', artifacts)
+    with zipfile.ZipFile(artifacts / 'deployment.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(release.rglob('*')):
+            if p.is_file(): z.write(p, p.relative_to(release).as_posix())
+    git('add', 'deployment.zip', cwd=artifacts)
+    git('commit', '-m', 'Package tested main ' + sha, cwd=artifacts)
+    artifact_commit = git('rev-parse', 'HEAD', cwd=artifacts)
+    git('push', 'origin', 'hostinger-artifacts', cwd=artifacts)
+    work = temp / 'deployment'
+    checkout_branch('hostinger-deploy', work)
+    # The web deployment contains only a denied pointer, never application files.
+    for p in work.iterdir():
+        if p.name != '.git':
+            if p.is_dir(): shutil.rmtree(p)
+            else: p.unlink()
+    pointer = {'release': sha, 'manifest_sha256': hashlib.sha256(deployment_manifest.read_bytes()).hexdigest(),
+               'artifact_commit': artifact_commit, 'archive_sha256': hashlib.sha256((artifacts / 'deployment.zip').read_bytes()).hexdigest()}
+    (work / 'current.json').write_text(json.dumps(pointer, indent=2))
+    (work / '.htaccess').write_text('Require all denied\n')
+    subprocess.run(['php', str(root / 'tools/test-managed-artifact.php'), str(work / 'current.json'), schema], check=True)
+    git('add', '-A', cwd=work)
     git('commit', '-m', 'Deploy tested main ' + sha, cwd=work)
     git('push', 'origin', 'hostinger-deploy', cwd=work)
 print('Published tested release ' + sha + '; schema fingerprint ' + schema)
