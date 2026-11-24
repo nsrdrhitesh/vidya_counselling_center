@@ -3,6 +3,7 @@
 This branch is public source/dependencies only. Hosting must target a directory
 outside public_html. Runtime data and production configuration never enter Git.
 """
+import base64
 import hashlib
 import json
 import os
@@ -23,8 +24,8 @@ def git(*args, cwd=None):
 root = Path(__file__).resolve().parents[1]
 if os.environ.get('GITHUB_ACTIONS') != 'true':
     raise SystemExit('Publish from the remote tested workflow only.')
-for key in git('config', '--local', '--name-only', '--get-regexp', r'http\..*\.extraheader').splitlines():
-    headers.extend(['-c', key + '=' + git('config', '--local', '--get', key)])
+authorization = base64.b64encode(('x-access-token:' + os.environ['GH_TOKEN']).encode()).decode()
+headers.extend(['-c', 'http.https://github.com/.extraheader=AUTHORIZATION: basic ' + authorization])
 sha = os.environ['GITHUB_SHA']
 if git('rev-parse', 'origin/main') != sha:
     raise SystemExit('A newer main commit exists; refusing stale publication.')

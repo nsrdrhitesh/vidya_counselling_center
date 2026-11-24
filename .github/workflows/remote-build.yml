@@ -165,5 +165,6 @@ jobs:
           name: vidya-candidate-${{ github.sha }}
           path: candidate
       - name: Publish tested dependencies to private hosting deployment directory
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 tools/publish-hostinger.py candidate
-
