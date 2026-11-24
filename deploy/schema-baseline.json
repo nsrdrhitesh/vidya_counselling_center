@@ -1,0 +1,9 @@
+{
+  "database/migrations/0001_01_01_000000_create_users_table.php": "bcee6dc804a15e55ce8867ec9ab7a319f479a0f7e990184c3f9d8ea98964be23",
+  "database/migrations/0001_01_01_000001_create_cache_table.php": "fbb4665e5a977e71df4e74ec75b3c06ca4f17ad0de7138fe9786639189978e77",
+  "database/migrations/0001_01_01_000002_create_jobs_table.php": "df4910687180313a14a3f96a8bddd808ae145ed1b107cd772caf865c0dc2b746",
+  "database/migrations/2026_11_04_000001_create_admin_setup_table.php": "b99eb50c631d57496e0408afadb3265bb538a16bba90f141e36b2421d4501e91",
+  "database/migrations/2026_11_05_000001_add_staff_and_editorial.php": "37989c1899c7359c7d63a77f63e147ff9412e01e5cb80bebb7c5d651b9f1be0b",
+  "database/migrations/2026_11_07_000001_add_public_centre_modules.php": "d9730343dc6d0e66a5126c38375ddec7b6a8104a3a3a6c497ae0d232eea865c7",
+  "database/migrations/2026_11_07_000002_seed_verified_centre_content.php": "4baf8b783534ef1d92e535a43099741ace4cf5b1d6a128a904eaa6c168f98479"
+}

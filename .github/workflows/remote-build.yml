@@ -83,7 +83,9 @@ jobs:
             composer validate --strict
           fi
           composer audit --locked
-          find app bootstrap config database routes tests tools -name '*.php' -print0 | xargs -0 -n1 php -l
+          find app bootstrap config database routes tests tools deploy -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Verify managed deployment isolation and rollback
+        run: php tools/test-managed-deployment.php
       - name: Compile and lint every Blade template
         run: |
           php artisan view:cache
@@ -143,4 +145,25 @@ jobs:
             build/evidence/
             build/upgrade-20261107.sql
             build/release/
-      # Intentionally no Hostinger secrets, upload, deploy or auto-deployment step.
+
+  publish-hostinger:
+    needs: test-and-package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: hostinger-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: vidya-candidate-${{ github.sha }}
+          path: candidate
+      - name: Publish tested dependencies to private hosting deployment directory
+        run: python3 tools/publish-hostinger.py candidate
+
