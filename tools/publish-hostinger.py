@@ -25,7 +25,7 @@ root = Path(__file__).resolve().parents[1]
 if os.environ.get('GITHUB_ACTIONS') != 'true':
     raise SystemExit('Publish from the remote tested workflow only.')
 authorization = base64.b64encode(('x-access-token:' + os.environ['GH_TOKEN']).encode()).decode()
-headers.extend(['-c', 'http.https://github.com/.extraheader=AUTHORIZATION: basic ' + authorization])
+headers.extend(['-c', 'http.https://github.com/.extraheader=', '-c', 'http.https://github.com/.extraheader=AUTHORIZATION: basic ' + authorization])
 sha = os.environ['GITHUB_SHA']
 if git('rev-parse', 'origin/main') != sha:
     raise SystemExit('A newer main commit exists; refusing stale publication.')
