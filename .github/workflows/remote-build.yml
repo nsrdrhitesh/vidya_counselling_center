@@ -173,3 +173,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/publish-hostinger.py candidate
+      - name: Verify the actual HTTPS production release
+        env:
+          EXPECTED_RELEASE: ${{ github.sha }}
+        run: python3 tools/verify-production.py
