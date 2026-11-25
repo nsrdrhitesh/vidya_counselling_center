@@ -53,6 +53,6 @@ GitHub Actions installs the committed Composer lock, compiles/lints Blade, runs 
 php artisan test
 ```
 
-Run tests only against an isolated local database. Never run `migrate:fresh` or first-install SQL against production. Git-to-Hostinger automatic deployment is being connected separately; a successful source push alone is not evidence that hosting updated.
+Run tests only against an isolated local database. Never run `migrate:fresh` or first-install SQL against production. After a feature branch is merged into main, GitHub Actions tests the source and builds locked production dependencies. The generated hostinger-deploy branch is connected to public_html/_deployment; do not connect main or hostinger-artifacts directly to the website root. See [production deployment](docs/DEPLOYMENT.md).
 
 [Centre editing and privacy guide](docs/CENTRE-MODULES.md). Quill 2.0.3 is self-hosted under its BSD-3-Clause notice in `public/vendor/quill/LICENSE`; Symfony HTML Sanitizer handles server-side rich-text sanitization. Operational account paths, private exports and backups are intentionally excluded.

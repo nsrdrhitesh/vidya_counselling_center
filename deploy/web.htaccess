@@ -2,6 +2,7 @@ Options -Indexes -MultiViews
 DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteRule ^(?:\.|deployment\.zip$) - [F,L]
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteCond %{HTTP:x-xsrf-token} .
