@@ -1,6 +1,6 @@
 {
-  "release": "f287772add2c456bf0c3dc1c623a2dd71728a8cb",
-  "manifest_sha256": "514a321967c93a7c2b7cd15dda61644f215ec2e55dfee3e7da0099fc3ef0757b",
-  "artifact_commit": "91e8bc3ac387f6158ac5bc46e2f6e1ae8ccefe75",
-  "archive_sha256": "5af5bbe229bdeb5a9ccc0eabb847e4909295951a3eb05153fab16e84da0d335e"
+  "release": "eb1edbc51fa96747446c5cfe215a32e7262a2610",
+  "manifest_sha256": "34724f94af18edf038769bb2cd792a6964cc211a2c5558c2bdfd2efc0b2ee915",
+  "artifact_commit": "cd42ffef09eb651c0e7bc392d863bd54950167e4",
+  "archive_sha256": "70e3c48ae4c632bcb85946683d816949f7558c45f501b5389fa1b42051dec48c"
 }
