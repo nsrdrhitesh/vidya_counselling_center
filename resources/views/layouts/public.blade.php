@@ -19,7 +19,7 @@
 @foreach(['instagram'=>'Instagram','facebook'=>'Facebook'] as $key=>$label)
 @if(!empty($website[$key]))<a href="{{ $website[$key] }}" target="_blank" rel="noopener noreferrer">{{ $label }} ↗</a>
 @endif 
-@endforeach</div></div><div class="container footer-bottom"><p>© {{ now()->year }}. All rights reserved by <a href="https://hiteshahire.in" target="_blank" rel="noopener noreferrer">Hitesh Ahire.</a></p><p>Design, develop &amp; maintain by a <a href="https://hiteshahire.in" target="_blank" rel="noopener noreferrer">Hitesh Ahire.</a></p></div></footer>
+@endforeach</div></div><div class="container footer-bottom"><p>© {{ now()->year }}. All rights reserved by <a href="https://hiteshahire.in" target="_blank" rel="noopener noreferrer">Hitesh Ahire.</a></p><p>Design, develop &amp; maintain by <a href="https://hiteshahire.in" target="_blank" rel="noopener noreferrer">Hitesh Ahire.</a></p></div></footer>
 <div class="contact-shortcuts">
 @if(($website['whatsapp_verified']??'0')==='1'&&!empty($website['whatsapp']))<a class="whatsapp-shortcut" href="https://wa.me/{{ preg_replace('/\D/','',$website['whatsapp']) }}?text={{ rawurlencode('Hello Vidya Counseling Centre, I would like to know more about a consultation.') }}" target="_blank" rel="noopener noreferrer" aria-label="Contact Vidya on WhatsApp"><span aria-hidden="true">◉</span> WhatsApp</a>
 @endif<button class="talk-shortcut" type="button" data-talk-open aria-haspopup="dialog">Let’s Talk <span aria-hidden="true">↗</span></button></div>
